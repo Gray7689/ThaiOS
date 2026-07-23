@@ -44,9 +44,19 @@ bootstrap() {
         apt-get update && apt-get install -y debootstrap
     fi
     
-    debootstrap --arch=amd64 --variant=minbase \
+    debootstrap --arch=amd64 --variant=minbase --foreign \
         --include="$INCLUDE_PKGS" \
         "$DEBIAN_SUITE" "$ROOTFS_DIR" "$DEBIAN_MIRROR"
+    
+    # policy-rc.d: impedisce ai maintainer script di avviare servizi
+    cat > "$ROOTFS_DIR/usr/sbin/policy-rc.d" << 'POLICY'
+#!/bin/sh
+exit 101
+POLICY
+    chmod +x "$ROOTFS_DIR/usr/sbin/policy-rc.d"
+    
+    # Seconda fase: configura tutti i pacchetti senza tentare di avviare servizi
+    chroot "$ROOTFS_DIR" /debootstrap/debootstrap --second-stage
     
     log "Bootstrap completato"
 }
