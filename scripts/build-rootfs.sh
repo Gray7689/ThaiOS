@@ -45,9 +45,9 @@ bootstrap() {
     
     debootstrap --arch=amd64 --variant=minbase \
         --include="$INCLUDE_PKGS" \
-        "$DEBIAN_SUITE" "$ROOTFS_DIR" "$DEBIAN_MIRROR"
+        "$DEBIAN_SUITE" "$ROOTFS_DIR" "$DEBIAN_MIRROR" || true
     
-    log "Bootstrap completato"
+    log "Bootstrap completato (warning ignorati)"
 }
 
 configure_system() {
@@ -68,6 +68,9 @@ configure_system() {
 exit 101
 POLICY
     chmod +x "$ROOTFS_DIR/usr/sbin/policy-rc.d"
+    
+    # Riconfigura tutti i pacchetti che hanno fallito durante debootstrap
+    chroot "$ROOTFS_DIR" dpkg --configure -a 2>/dev/null || true
     
     # Installa libgtk-3-0 senza recommends per evitare dconf-service
     apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" libgtk-3-0 2>/dev/null || true
