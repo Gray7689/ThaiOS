@@ -15,6 +15,8 @@ THAIOS_VERSION="1.0"
 THAIOS_CODENAME="Songkran"
 DEBIAN_SUITE="bookworm"
 DEBIAN_MIRROR="http://deb.debian.org/debian"
+# Mirror alternativo se il default fallisce
+DEBIAN_MIRROR_FALLBACK="http://ftp.us.debian.org/debian"
 
 # Packages da includere direttamente nel bootstrap
 INCLUDE_PKGS="systemd,systemd-sysv,dbus,udev,linux-image-amd64,firmware-linux,"

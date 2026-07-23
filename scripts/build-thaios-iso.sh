@@ -32,9 +32,11 @@ check_system() {
         error "Supportata solo architettura x86_64"
     fi
     
-    # Check internet
-    if ! ping -c 1 8.8.8.8 &>/dev/null; then
-        error "Nessuna connessione internet. Richiesto per debootstrap."
+    # Check internet (usa HTTP invece di ping, bloccato su GitHub Actions)
+    if ! curl -s --connect-timeout 5 http://deb.debian.org >/dev/null 2>&1; then
+        if ! wget -q --timeout=5 http://deb.debian.org -O /dev/null 2>/dev/null; then
+            log "AVVISO: impossibile verificare connessione internet. Si procede comunque..."
+        fi
     fi
     
     log "Sistema: $(uname -a | head -1)"
