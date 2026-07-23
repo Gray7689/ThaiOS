@@ -19,10 +19,10 @@ DEBIAN_MIRROR="http://deb.debian.org/debian"
 DEBIAN_MIRROR_FALLBACK="http://ftp.us.debian.org/debian"
 
 # Packages da includere direttamente nel bootstrap
-INCLUDE_PKGS="systemd,systemd-sysv,dbus,udev,linux-image-amd64,firmware-linux,"
+INCLUDE_PKGS="systemd,systemd-sysv,dbus,udev,linux-image-amd64,"
 INCLUDE_PKGS+="xserver-xorg-core,xserver-xorg-input-all,xserver-xorg-video-all,xinit,"
 INCLUDE_PKGS+="python3,python3-gi,python3-gi-cairo,"
-INCLUDE_PKGS+="libgtk-3-0,gir1.2-gtk-3-0,"
+INCLUDE_PKGS+="libgtk-3-0,"
 INCLUDE_PKGS+="network-manager,alsa-utils,pulseaudio,"
 INCLUDE_PKGS+="zsh,bash-completion,sudo,curl,wget,nano,htop,ca-certificates,"
 INCLUDE_PKGS+="fonts-dejavu,fonts-noto,desktop-file-utils"
@@ -284,7 +284,7 @@ configure_display_manager() {
     log "Fase 6: Configurazione display manager..."
     
     # Use XDM or lightdm as login manager with ThaiOS branding
-    apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" lightdm lightdm-gtk-greeter 2>/dev/null || true
+    apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" lightdm lightdm-gtk-greeter 2>/dev/null || log "LightDM non installato (opzionale)"
     
     # LightDM with ThaiOS theme
     mkdir -p "$ROOTFS_DIR/etc/lightdm"
