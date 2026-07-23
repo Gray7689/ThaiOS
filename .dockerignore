@@ -1,0 +1,9 @@
+.git
+build/
+*.iso
+*.img
+__pycache__/
+*.pyc
+node_modules/
+.vscode/
+.idea/
