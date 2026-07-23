@@ -29,8 +29,10 @@ check_deps() {
     if [ ${#missing[@]} -gt 0 ]; then
         log "Installazione dipendenze mancanti..."
         apt-get update
-        apt-get install -y squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin \
-            mtools dosfstools isolinux syslinux-common
+        apt-get install -y squashfs-tools xorriso grub-pc-bin \
+            mtools dosfstools isolinux syslinux-common 2>/dev/null || \
+        apt-get install -y squashfs-tools xorriso grub-pc-bin \
+            mtools dosfstools
     fi
 }
 
@@ -182,35 +184,25 @@ generate_iso() {
     # Cleanup old ISO
     rm -f "$OUTPUT_ISO"
     
-    # Build hybrid ISO with GRUB
-    grub-mkrescue -o "$OUTPUT_ISO" "$ISO_DIR" \
-        --modules="iso9660 squash4 ext2 part_msdos part_gpt loopback" \
-        --install-modules="iso9660 squash4 ext2 part_msdos part_gpt loopback" \
-        --locale-directory=/usr/share/locale \
-        --themes-dir=/usr/share/grub/themes \
-        2>&1 | grep -v "warning: cannot open"
-    
-    # Check if ISO was created
-    if [ ! -f "$OUTPUT_ISO" ]; then
-        # Fallback: xorriso directly
-        xorriso -as mkisofs \
-            -iso-level 3 \
-            -full-iso9660-filenames \
-            -volid "ThaiOS-1-0" \
-            -appid "ThaiOS Live" \
-            -publisher "ThaiOS" \
-            -eltorito-boot isolinux/isolinux.bin \
-            -eltorito-catalog isolinux/boot.cat \
-            -no-emul-boot \
-            -boot-load-size 4 \
-            -boot-info-table \
-            -isohybrid-gpt-basdat \
-            -eltorito-alt-boot \
-            -e --interval:appended_partition_2:all:: \
-            -no-emul-boot \
-            -output "$OUTPUT_ISO" \
-            "$ISO_DIR"
-    fi
+    # Build hybrid ISO with xorriso + isolinux
+    xorriso -as mkisofs \
+        -iso-level 3 \
+        -full-iso9660-filenames \
+        -volid "ThaiOS-1-0" \
+        -appid "ThaiOS Live" \
+        -publisher "ThaiOS" \
+        -eltorito-boot isolinux/isolinux.bin \
+        -eltorito-catalog isolinux/boot.cat \
+        -no-emul-boot \
+        -boot-load-size 4 \
+        -boot-info-table \
+        -isohybrid-gpt-basdat \
+        -isohybrid-apm-hfsplus \
+        -output "$OUTPUT_ISO" \
+        "$ISO_DIR" 2>&1 | grep -v "ISO:"
+
+
+
     
     if [ -f "$OUTPUT_ISO" ]; then
         local size=$(du -h "$OUTPUT_ISO" | cut -f1)

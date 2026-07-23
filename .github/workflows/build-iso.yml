@@ -21,30 +21,44 @@ jobs:
 
       - name: Libera spazio disco
         run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android
           df -h
 
-      - name: Installa dipendenze di build
+      - name: Installa dipendenze (batch 1 - base)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             debootstrap \
             squashfs-tools \
             xorriso \
+            ca-certificates \
+            curl
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Installa dipendenze (batch 2 - boot)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
             grub-pc-bin \
-            grub-efi-amd64-bin \
+            grub-common \
+            grub2-common \
             mtools \
-            dosfstools \
+            dosfstools
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Installa dipendenze (batch 3 - isolinux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
             isolinux \
             syslinux-common \
-            systemd-container \
-            ca-certificates
+            syslinux
           sudo rm -rf /var/lib/apt/lists/*
 
       - name: Build ThaiOS ISO
         run: |
           sudo bash scripts/build-thaios-iso.sh all
-        timeout-minutes: 60
+        timeout-minutes: 90
 
       - name: Verifica ISO
         run: |
