@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#0F1A2E"/>
+  <rect width="1920" height="1080" fill="url(#grad)" opacity="0.3"/>
+  <defs>
+    <radialGradient id="grad" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1D3557" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0F1A2E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E63946"/>
+      <stop offset="50%" stop-color="#FF6B35"/>
+      <stop offset="100%" stop-color="#F7C59F"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(960, 400)">
+    <polygon points="0,-120 40,-20 140,-20 60,40 80,140 0,80 -80,140 -60,40 -140,-20 -40,-20" fill="url(#lg)"/>
+    <circle cx="0" cy="40" r="20" fill="#1D3557" opacity="0.5"/>
+  </g>
+  <text x="960" y="560" font-family="'Segoe UI', sans-serif" font-size="72" font-weight="bold" fill="#E8EDF5" text-anchor="middle" letter-spacing="8">THAIOS</text>
+  <text x="960" y="590" font-family="sans-serif" font-size="24" fill="#8899B3" text-anchor="middle">v1.0 Songkran</text>
+  <rect x="560" y="640" width="800" height="4" rx="2" fill="#2D4066"/>
+  <rect x="560" y="640" width="0" height="4" rx="2" fill="#FF6B35">
+    <animate attributeName="width" from="0" to="800" dur="30s" fill="freeze"/>
+  </rect>
+  <text x="960" y="680" font-family="sans-serif" font-size="14" fill="#8899B3" text-anchor="middle">
+    Caricamento in corso...
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+  </text>
+</svg>
