@@ -47,6 +47,10 @@ configure_system() {
     mount -t proc none "$ROOTFS_DIR/proc" 2>/dev/null || true
     mount -t sysfs none "$ROOTFS_DIR/sys" 2>/dev/null || true
     mount -o bind /dev "$ROOTFS_DIR/dev" 2>/dev/null || true
+    mount -o bind /dev/pts "$ROOTFS_DIR/dev/pts" 2>/dev/null || true
+    
+    # Enable networking inside chroot
+    cp /etc/resolv.conf "$ROOTFS_DIR/etc/resolv.conf" 2>/dev/null || echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
     
     # ThaiOS identity files
     mkdir -p "$ROOTFS_DIR/etc"
@@ -89,7 +93,7 @@ APTSOURCES
     # Install ThaiOS packages
     chroot "$ROOTFS_DIR" /bin/bash << 'CHROOT'
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
+apt-get update || (sleep 5 && apt-get update)
 apt-get install -y --no-install-recommends \
     xserver-xorg-core xserver-xorg-input-all xserver-xorg-video-all \
     xinit x11-xserver-utils \
@@ -428,6 +432,7 @@ finalize() {
     rm -f "$ROOTFS_DIR/var/lib/dbus/machine-id"
     
     # Unmount special filesystems
+    umount -l "$ROOTFS_DIR/dev/pts" 2>/dev/null || true
     umount -l "$ROOTFS_DIR/proc" 2>/dev/null || true
     umount -l "$ROOTFS_DIR/sys" 2>/dev/null || true
     umount -l "$ROOTFS_DIR/dev" 2>/dev/null || true
