@@ -22,7 +22,6 @@ DEBIAN_MIRROR_FALLBACK="http://ftp.us.debian.org/debian"
 INCLUDE_PKGS="systemd,systemd-sysv,dbus,udev,linux-image-amd64,"
 INCLUDE_PKGS+="xserver-xorg-core,xserver-xorg-input-all,xserver-xorg-video-all,xinit,"
 INCLUDE_PKGS+="python3,python3-gi,python3-gi-cairo,"
-INCLUDE_PKGS+="libgtk-3-0,"
 INCLUDE_PKGS+="network-manager,alsa-utils,pulseaudio,"
 INCLUDE_PKGS+="zsh,bash-completion,sudo,curl,wget,nano,htop,ca-certificates,"
 INCLUDE_PKGS+="fonts-dejavu,fonts-noto,desktop-file-utils"
@@ -44,19 +43,9 @@ bootstrap() {
         apt-get update && apt-get install -y debootstrap
     fi
     
-    debootstrap --arch=amd64 --variant=minbase --foreign \
+    debootstrap --arch=amd64 --variant=minbase \
         --include="$INCLUDE_PKGS" \
         "$DEBIAN_SUITE" "$ROOTFS_DIR" "$DEBIAN_MIRROR"
-    
-    # policy-rc.d: impedisce ai maintainer script di avviare servizi
-    cat > "$ROOTFS_DIR/usr/sbin/policy-rc.d" << 'POLICY'
-#!/bin/sh
-exit 101
-POLICY
-    chmod +x "$ROOTFS_DIR/usr/sbin/policy-rc.d"
-    
-    # Seconda fase: configura tutti i pacchetti senza tentare di avviare servizi
-    chroot "$ROOTFS_DIR" /debootstrap/debootstrap --second-stage
     
     log "Bootstrap completato"
 }
@@ -72,6 +61,16 @@ configure_system() {
     
     # Enable networking inside chroot
     cp /etc/resolv.conf "$ROOTFS_DIR/etc/resolv.conf" 2>/dev/null || echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
+    
+    # policy-rc.d: impedisce ai maintainer script di avviare servizi
+    cat > "$ROOTFS_DIR/usr/sbin/policy-rc.d" << 'POLICY'
+#!/bin/sh
+exit 101
+POLICY
+    chmod +x "$ROOTFS_DIR/usr/sbin/policy-rc.d"
+    
+    # Installa libgtk-3-0 senza recommends per evitare dconf-service
+    apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" libgtk-3-0 2>/dev/null || true
     
     # ThaiOS identity files
     mkdir -p "$ROOTFS_DIR/etc"
