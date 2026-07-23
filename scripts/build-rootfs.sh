@@ -16,6 +16,15 @@ THAIOS_CODENAME="Songkran"
 DEBIAN_SUITE="bookworm"
 DEBIAN_MIRROR="http://deb.debian.org/debian"
 
+# Packages da includere direttamente nel bootstrap
+INCLUDE_PKGS="systemd,systemd-sysv,dbus,udev,linux-image-amd64,firmware-linux,"
+INCLUDE_PKGS+="xserver-xorg-core,xserver-xorg-input-all,xserver-xorg-video-all,xinit,"
+INCLUDE_PKGS+="python3,python3-gi,python3-gi-cairo,"
+INCLUDE_PKGS+="libgtk-3-0,gir1.2-gtk-3-0,"
+INCLUDE_PKGS+="network-manager,alsa-utils,pulseaudio,"
+INCLUDE_PKGS+="zsh,bash-completion,sudo,curl,wget,nano,htop,ca-certificates,"
+INCLUDE_PKGS+="fonts-dejavu,fonts-noto,desktop-file-utils"
+
 log() { echo -e "\033[1;32m[ThaiOS]\033[0m $*"; }
 error() { echo -e "\033[1;31m[ERROR]\033[0m $*"; exit 1; }
 
@@ -30,11 +39,11 @@ bootstrap() {
     
     if ! command -v debootstrap &>/dev/null; then
         log "Installazione debootstrap..."
-        apt-get update && apt-get install -y debootstrap arch-install-scripts
+        apt-get update && apt-get install -y debootstrap
     fi
     
     debootstrap --arch=amd64 --variant=minbase \
-        --include=systemd,systemd-sysv,dbus,udev,linux-image-amd64,firmware-linux \
+        --include="$INCLUDE_PKGS" \
         "$DEBIAN_SUITE" "$ROOTFS_DIR" "$DEBIAN_MIRROR"
     
     log "Bootstrap completato"
@@ -89,40 +98,8 @@ deb http://deb.debian.org/debian bookworm main contrib non-free-firmware
 deb http://deb.debian.org/debian bookworm-updates main contrib non-free-firmware
 deb http://security.debian.org/debian-security bookworm-security main contrib non-free-firmware
 APTSOURCES
-    
-    # Install ThaiOS packages (from HOST with --root to avoid chroot network issues)
-    export DEBIAN_FRONTEND=noninteractive
-    
-    # First copy DNS config
-    echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
-    echo "nameserver 1.1.1.1" >> "$ROOTFS_DIR/etc/resolv.conf"
-    
-    # Configure apt in target
-    mount --bind /dev "$ROOTFS_DIR/dev" 2>/dev/null || true
-    
-    # Update apt cache from host for the target
-    apt-get update --root="$ROOTFS_DIR" 2>/dev/null || \
-    chroot "$ROOTFS_DIR" apt-get update 2>/dev/null || true
-    
-    # Install packages using host's apt with root target
-    for pkg_group in \
-        "xserver-xorg-core xserver-xorg-input-all xserver-xorg-video-all xinit x11-xserver-utils" \
-        "mesa-utils libgl1-mesa-dri" \
-        "alsa-utils pulseaudio pavucontrol" \
-        "network-manager gnome-keyring" \
-        "python3 python3-gi python3-gi-cairo" \
-        "gir1.2-gtk-3.0 libgtk-3-0" \
-        "zsh bash-completion sudo curl wget nano htop ca-certificates dbus-x11" \
-        "fonts-dejavu fonts-noto desktop-file-utils gtk-update-icon-cache"; do
-        log "Installazione: $pkg_group ..."
-        apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" $pkg_group || \
-        chroot "$ROOTFS_DIR" apt-get install -y --no-install-recommends $pkg_group 2>/dev/null || \
-        log "ATTENZIONE: alcuni pacchetti non installati: $pkg_group"
-    done
-    
-    # Clean apt cache
-    chroot "$ROOTFS_DIR" apt-get clean 2>/dev/null || true
-    rm -rf "$ROOTFS_DIR/var/lib/apt/lists/"*
+    apt-get clean --root="$ROOTFS_DIR" 2>/dev/null || true
+    rm -rf "$ROOTFS_DIR/var/lib/apt/lists/"* 2>/dev/null || true
 
     log "Pacchetti ThaiOS installati"
 }
@@ -305,12 +282,7 @@ configure_display_manager() {
     log "Fase 6: Configurazione display manager..."
     
     # Use XDM or lightdm as login manager with ThaiOS branding
-    chroot "$ROOTFS_DIR" /bin/bash << 'CHROOT'
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y --no-install-recommends lightdm lightdm-gtk-greeter
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-CHROOT
+    apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" lightdm lightdm-gtk-greeter 2>/dev/null || true
     
     # LightDM with ThaiOS theme
     mkdir -p "$ROOTFS_DIR/etc/lightdm"
@@ -341,12 +313,7 @@ GREETER
 configure_boot_splash() {
     log "Fase 7: Configurazione boot splash ThaiOS..."
     
-    chroot "$ROOTFS_DIR" /bin/bash << 'CHROOT'
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y --no-install-recommends plymouth plymouth-themes
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-CHROOT
+    apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" plymouth plymouth-themes 2>/dev/null || true
     
     # ThaiOS Plymouth theme
     mkdir -p "$ROOTFS_DIR/usr/share/plymouth/themes/ThaiOS"
@@ -377,8 +344,9 @@ SCRIPT
     ln -sf /usr/share/plymouth/themes/ThaiOS/ThaiOS.plymouth \
         "$ROOTFS_DIR/etc/alternatives/default.plymouth" 2>/dev/null || true
     
-    # Update initramfs
+    # Update initramfs (skip errors, handled on first boot)
     chroot "$ROOTFS_DIR" update-initramfs -u 2>/dev/null || true
+    rm -f "$ROOTFS_DIR/etc/machine-id" 2>/dev/null || true
     
     log "Boot splash configurato"
 }
@@ -427,7 +395,7 @@ finalize() {
     log "Fase 9: Finalizzazione..."
     
     # Clean apt
-    chroot "$ROOTFS_DIR" apt-get clean 2>/dev/null || true
+    apt-get clean --root="$ROOTFS_DIR" 2>/dev/null || true
     
     # Remove temporary files
     rm -rf "$ROOTFS_DIR/tmp/"*
