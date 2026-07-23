@@ -1,0 +1,36 @@
+[Icon Theme]
+Name=ThaiOS-Icons
+Comment=Icone ThaiOS
+Author=ThaiOS Team
+Version=1.0
+Example=thaios-logo
+
+Directories=scalable/apps,scalable/actions,scalable/places,scalable/status
+
+[scalable/apps]
+Size=48
+MinSize=16
+MaxSize=512
+Type=Scalable
+Context=Applications
+
+[scalable/actions]
+Size=24
+MinSize=8
+MaxSize=128
+Type=Scalable
+Context=Actions
+
+[scalable/places]
+Size=48
+MinSize=16
+MaxSize=256
+Type=Scalable
+Context=Places
+
+[scalable/status]
+Size=24
+MinSize=8
+MaxSize=128
+Type=Scalable
+Context=Status

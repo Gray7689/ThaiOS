@@ -1,0 +1,20 @@
+{
+  "fonts": {
+    "sans-serif": "Sarabun",
+    "monospace": "Sarabun-ExtraLight",
+    "display": "Sarabun-Bold",
+    "ui": "Sarabun",
+    "terminal": "Sarabun-Term"
+  },
+  "sizes": {
+    "caption": 10,
+    "body": 12,
+    "subheading": 14,
+    "heading": 18,
+    "title": 24,
+    "display": 36
+  },
+  "hinting": "slight",
+  "antialiasing": "rgba",
+  "dpi": 96
+}

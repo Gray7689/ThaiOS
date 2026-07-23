@@ -1,0 +1,19 @@
+{
+  "splash": {
+    "background": "#1D3557",
+    "logo": "/usr/share/ThaiOS/branding/logo/ThaiOS-splash.png",
+    "progress_bar": {
+      "color": "#E63946",
+      "track_color": "#2A4A7F",
+      "height": 4,
+      "width_percent": 40
+    },
+    "show_version": true,
+    "version_color": "#A8DADC",
+    "animation": "fade-slide",
+    "messages": {
+      "color": "#A8DADC",
+      "font": "Sarabun 14"
+    }
+  }
+}

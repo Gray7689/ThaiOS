@@ -1,0 +1,22 @@
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 2, June 1991
+
+ Copyright (C) 2025 ThaiOS Team
+ Based on Linux kernel, licensed under GPL v2
+
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The licenses for most software are designed to take away your
+freedom to share and change it.  By contrast, the GNU General Public
+License is intended to guarantee your freedom to share and change free
+software--to make sure the software is free for all its users...
+
+  ... (full GPL v2 text would go here) ...
+
+  ThaiOS incorporates components from the Linux kernel, which is
+licensed under the GNU General Public License v2 only. In accordance
+with the license terms, the complete source code for ThaiOS is
+available at https://github.com/ThaiOS/thaios.

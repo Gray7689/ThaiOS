@@ -1,0 +1,18 @@
+{
+  "name": "ThaiOS-Cursors",
+  "comment": "ThaiOS custom cursor theme",
+  "sizes": [24, 32, 48, 64],
+  "hotspots": {
+    "default": { "x": 8, "y": 8 },
+    "pointer": { "x": 8, "y": 8 },
+    "text": { "x": 16, "y": 16 },
+    "move": { "x": 16, "y": 16 },
+    "resize-h": { "x": 16, "y": 8 },
+    "resize-v": { "x": 8, "y": 16 }
+  },
+  "color_scheme": {
+    "outline": "#1D3557",
+    "fill": "#FFFFFF",
+    "accent": "#E63946"
+  }
+}

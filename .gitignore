@@ -1,0 +1,36 @@
+# Build artifacts
+build/
+out/
+*.o
+*.a
+*.so
+*.elf
+*.iso
+*.img
+*.qcow2
+
+# Dependencies
+deps/
+vendor/
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log

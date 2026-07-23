@@ -1,0 +1,13 @@
+ID=thaios
+ID_LIKE=
+NAME="ThaiOS"
+PRETTY_NAME="ThaiOS 1.0"
+VERSION_ID="1.0"
+VERSION="1.0 (Songkran)"
+VERSION_CODENAME=songkran
+BUILD_ID=20250723
+ANSI_COLOR="0;31;44"
+HOME_URL="https://thaios.dev"
+SUPPORT_URL="https://thaios.dev/support"
+BUG_REPORT_URL="https://thaios.dev/issues"
+LOGO=thaios-logo

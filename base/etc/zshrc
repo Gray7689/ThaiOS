@@ -1,0 +1,23 @@
+# ThaiOS Zsh Configuration
+
+THAIOS_PROMPT_COLOR1='%F{196}'
+THAIOS_PROMPT_COLOR2='%F{202}'
+THAIOS_PROMPT_COLOR3='%F{032}'
+THAIOS_RESET='%f'
+
+PROMPT='${THAIOS_PROMPT_COLOR1}┌[${THAIOS_RESET}%n${THAIOS_PROMPT_COLOR3}@${THAIOS_RESET}%m${THAIOS_PROMPT_COLOR1}]─[${THAIOS_RESET}%~${THAIOS_PROMPT_COLOR1}]
+└[${THAIOS_RESET}%*${THAIOS_PROMPT_COLOR1}]>${THAIOS_RESET} '
+
+alias ls='ls --color=auto'
+alias ll='ls -la'
+alias la='ls -A'
+alias grep='grep --color=auto'
+alias thai-update='sudo thai-pkg update'
+alias thai-install='sudo thai-pkg install'
+alias thai-remove='sudo thai-pkg remove'
+alias thai-search='thai-pkg search'
+
+# ThaiOS-specific prompt title
+precmd() {
+  print -Pn "\e]0;ThaiTerminal — %~\a"
+}

@@ -1,0 +1,21 @@
+{
+  "theme_name": "ThaiOS",
+  "sounds": {
+    "login": "login.ogg",
+    "logout": "logout.ogg",
+    "startup": "startup.ogg",
+    "shutdown": "shutdown.ogg",
+    "notification": "notification.ogg",
+    "notification-critical": "notification-critical.ogg",
+    "error": "error.ogg",
+    "dialog-information": "dialog-info.ogg",
+    "dialog-warning": "dialog-warning.ogg",
+    "dialog-error": "dialog-error.ogg",
+    "button-click": "click.ogg",
+    "volume-change": "volume.ogg",
+    "screenshot": "camera-shutter.ogg",
+    "trash-empty": "trash.ogg",
+    "device-plug": "device-added.ogg",
+    "device-unplug": "device-removed.ogg"
+  }
+}

@@ -1,0 +1,28 @@
+[Theme]
+Name=ThaiOS Dark
+Comment=Tema scuro ThaiOS
+Author=ThaiOS Team
+Version=1.0
+
+[Desktop]
+DefaultBackground=/usr/share/ThaiOS/wallpapers/ThaiOS-night.png
+DefaultFont=Sarabun
+IconTheme=ThaiOS-Icons
+CursorTheme=ThaiOS-Cursors
+SoundTheme=ThaiOS
+
+[Colors]
+Background=#0F1A2E
+Foreground=#E8EDF5
+Accent=#FF6B35
+Surface=#1A2744
+SurfaceAlt=#243456
+Border=#2D4066
+Text=#E8EDF5
+TextSecondary=#8899B3
+Selection=#FF6B35
+SelectionText=#FFFFFF
+Warning=#F7C59F
+Error=#E63946
+Success=#4CAF50
+Info=#A8DADC
