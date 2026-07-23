@@ -90,32 +90,39 @@ deb http://deb.debian.org/debian bookworm-updates main contrib non-free-firmware
 deb http://security.debian.org/debian-security bookworm-security main contrib non-free-firmware
 APTSOURCES
     
-    # Install ThaiOS packages
-    chroot "$ROOTFS_DIR" /bin/bash << 'CHROOT'
-export DEBIAN_FRONTEND=noninteractive
-apt-get update || (sleep 5 && apt-get update)
-apt-get install -y --no-install-recommends \
-    xserver-xorg-core xserver-xorg-input-all xserver-xorg-video-all \
-    xinit x11-xserver-utils \
-    mesa-utils libgl1-mesa-dri \
-    alsa-utils pulseaudio pavucontrol \
-    network-manager gnome-keyring \
-    python3 python3-gi python3-gi-cairo \
-    gir1.2-gtk-3.0 gir1.2-webkit2-4.1 gir1.2-vte-2.91 \
-    gir1.2-gtksourceview-4 gir1.2-notify-0.7 \
-    libgtk-3-0 libwebkit2gtk-4.1-0 libvte-2.91-0 \
-    libgtksourceview-4-0 \
-    zsh bash-completion \
-    sudo curl wget nano htop \
-    ca-certificates dbus-x11 \
-    fonts-dejavu fonts-noto \
-    gtk-update-icon-cache desktop-file-utils \
-    --no-install-recommends
-
-# Clean apt cache
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-CHROOT
+    # Install ThaiOS packages (from HOST with --root to avoid chroot network issues)
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # First copy DNS config
+    echo "nameserver 8.8.8.8" > "$ROOTFS_DIR/etc/resolv.conf"
+    echo "nameserver 1.1.1.1" >> "$ROOTFS_DIR/etc/resolv.conf"
+    
+    # Configure apt in target
+    mount --bind /dev "$ROOTFS_DIR/dev" 2>/dev/null || true
+    
+    # Update apt cache from host for the target
+    apt-get update --root="$ROOTFS_DIR" 2>/dev/null || \
+    chroot "$ROOTFS_DIR" apt-get update 2>/dev/null || true
+    
+    # Install packages using host's apt with root target
+    for pkg_group in \
+        "xserver-xorg-core xserver-xorg-input-all xserver-xorg-video-all xinit x11-xserver-utils" \
+        "mesa-utils libgl1-mesa-dri" \
+        "alsa-utils pulseaudio pavucontrol" \
+        "network-manager gnome-keyring" \
+        "python3 python3-gi python3-gi-cairo" \
+        "gir1.2-gtk-3.0 libgtk-3-0" \
+        "zsh bash-completion sudo curl wget nano htop ca-certificates dbus-x11" \
+        "fonts-dejavu fonts-noto desktop-file-utils gtk-update-icon-cache"; do
+        log "Installazione: $pkg_group ..."
+        apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" $pkg_group || \
+        chroot "$ROOTFS_DIR" apt-get install -y --no-install-recommends $pkg_group 2>/dev/null || \
+        log "ATTENZIONE: alcuni pacchetti non installati: $pkg_group"
+    done
+    
+    # Clean apt cache
+    chroot "$ROOTFS_DIR" apt-get clean 2>/dev/null || true
+    rm -rf "$ROOTFS_DIR/var/lib/apt/lists/"*
 
     log "Pacchetti ThaiOS installati"
 }
