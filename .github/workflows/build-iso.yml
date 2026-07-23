@@ -1,0 +1,75 @@
+name: Build ThaiOS ISO
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - name: Checkout codice ThaiOS
+        uses: actions/checkout@v4
+
+      - name: Libera spazio disco
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h
+
+      - name: Installa dipendenze di build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            grub-pc-bin \
+            grub-efi-amd64-bin \
+            mtools \
+            dosfstools \
+            isolinux \
+            syslinux-common \
+            systemd-container \
+            ca-certificates
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Build ThaiOS ISO
+        run: |
+          sudo bash scripts/build-thaios-iso.sh all
+        timeout-minutes: 60
+
+      - name: Verifica ISO
+        run: |
+          ls -lh build/ThaiOS-1.0.iso
+          sha256sum build/ThaiOS-1.0.iso
+
+      - name: Upload ISO come artefatto
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThaiOS-1.0-ISO
+          path: build/ThaiOS-1.0.iso
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Crea Release (se tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ThaiOS-1.0.iso
+          name: ThaiOS ${{ github.ref_name }}
+          body: |
+            ## ThaiOS ${{ github.ref_name }}
+            
+            Build automatico dell'ISO ThaiOS.
+            
+            - SHA256: `${{ hashFiles('build/ThaiOS-1.0.iso') }}`
+            - Data: $(date +'%Y-%m-%d')
+          generate_release_notes: true
