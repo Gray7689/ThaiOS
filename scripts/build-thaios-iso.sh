@@ -49,26 +49,18 @@ build_everything() {
     log "================================================"
     echo ""
     
-    # Step 1: Build rootfs
-    log "${YELLOW}[1/4]${NC} Build del rootfs ThaiOS..."
+    # Step 1: Build rootfs (includes all phases: bootstrap, branding, apps, desktop, finalize)
+    log "${YELLOW}[1/3]${NC} Build del rootfs ThaiOS..."
     bash "$THAIOS_ROOT/scripts/build-rootfs.sh" all
     echo ""
     
-    # Step 2: Install ThaiOS source apps
-    log "${YELLOW}[2/4]${NC} Installazione applicazioni nel rootfs..."
-    bash "$THAIOS_ROOT/scripts/build-rootfs.sh" apps
-    bash "$THAIOS_ROOT/scripts/build-rootfs.sh" desktop
-    bash "$THAIOS_ROOT/scripts/build-rootfs.sh" branding
-    bash "$THAIOS_ROOT/scripts/build-rootfs.sh" finalize
-    echo ""
-    
-    # Step 3: Build ISO
-    log "${YELLOW}[3/4]${NC} Generazione ISO avviabile..."
+    # Step 2: Build ISO
+    log "${YELLOW}[2/3]${NC} Generazione ISO avviabile..."
     bash "$THAIOS_ROOT/scripts/build-iso-final.sh" all
     echo ""
     
-    # Step 4: Verify
-    log "${YELLOW}[4/4]${NC} Verifica ISO..."
+    # Step 3: Verify
+    log "${YELLOW}[3/3]${NC} Verifica ISO..."
     
     if [ -f "$BUILD_DIR/ThaiOS-1.0.iso" ]; then
         local size=$(du -h "$BUILD_DIR/ThaiOS-1.0.iso" | cut -f1)
@@ -129,10 +121,6 @@ case "${1:-all}" in
     rootfs)
         check_system
         bash "$THAIOS_ROOT/scripts/build-rootfs.sh" all
-        bash "$THAIOS_ROOT/scripts/build-rootfs.sh" apps
-        bash "$THAIOS_ROOT/scripts/build-rootfs.sh" desktop
-        bash "$THAIOS_ROOT/scripts/build-rootfs.sh" branding
-        bash "$THAIOS_ROOT/scripts/build-rootfs.sh" finalize
         log "Rootfs pronto in $BUILD_DIR/rootfs"
         ;;
     iso)

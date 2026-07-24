@@ -122,8 +122,41 @@ APTSOURCES
     log "Pacchetti ThaiOS installati"
 }
 
+generate_default_wallpapers() {
+    if [ ! -f "$THAIOS_ROOT/branding/wallpapers/ThaiOS-day.png" ] && command -v python3 &>/dev/null; then
+        log "Generazione wallpaper predefiniti..."
+        python3 -c "
+from struct import pack
+w, h = 1920, 1080
+pixels = bytearray()
+for y in range(h):
+    for x in range(w):
+        r = int(180 + 75 * (1 - y/h))
+        g = int(40 + 20 * (1 - y/h))
+        b = int(60 + 100 * (y/h))
+        pixels.extend([r, g, b])
+with open('$THAIOS_ROOT/branding/wallpapers/ThaiOS-day.png', 'wb') as f:
+    def chunk(ctype, data):
+        c = ctype + data
+        return pack('>I', len(data)) + c + pack('>I', __import__('zlib').crc32(c) & 0xffffffff)
+    sig = b'\x89PNG\r\n\x1a\n'
+    ihdr = pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+    raw = b''
+    for y in range(h):
+        raw += b'\x00'
+        raw += pixels[y*w*3:(y+1)*w*3]
+    compressed = __import__('zlib').compress(raw)
+    f.write(sig + chunk(b'IHDR', ihdr) + chunk(b'IDAT', compressed) + chunk(b'IEND', b''))
+" 2>/dev/null || true
+    fi
+    if [ ! -f "$THAIOS_ROOT/branding/wallpapers/ThaiOS-night.png" ] && [ -f "$THAIOS_ROOT/branding/wallpapers/ThaiOS-day.png" ]; then
+        cp "$THAIOS_ROOT/branding/wallpapers/ThaiOS-day.png" "$THAIOS_ROOT/branding/wallpapers/ThaiOS-night.png"
+    fi
+}
+
 install_thaios_branding() {
     log "Fase 3: Installazione branding ThaiOS..."
+    generate_default_wallpapers
     
     # Remove Debian/Ubuntu branding from GRUB
     rm -f "$ROOTFS_DIR/etc/default/grub.d/"* 2>/dev/null || true
@@ -416,9 +449,7 @@ finalize() {
     apt-get clean --root="$ROOTFS_DIR" 2>/dev/null || true
     
     # Remove temporary files
-    rm -rf "$ROOTFS_DIR/tmp/"*
-    rm -rf "$ROOTFS_DIR/var/log/"*
-    rm -rf "$ROOTFS_DIR/var/cache/apt/"*
+    rm -rf "$ROOTFS_DIR/tmp"/* "$ROOTFS_DIR/var/log"/* "$ROOTFS_DIR/var/cache/apt"/*
     
     # Remove machine ID (will be generated on first boot)
     rm -f "$ROOTFS_DIR/etc/machine-id"

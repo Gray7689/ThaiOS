@@ -27,13 +27,19 @@ check_deps() {
     done
     
     if [ ${#missing[@]} -gt 0 ]; then
-        log "Installazione dipendenze mancanti..."
-        apt-get update
+        log "Installazione dipendenze mancanti: ${missing[*]}..."
+        apt-get update -qq 2>/dev/null || true
         apt-get install -y squashfs-tools xorriso grub-pc-bin \
             grub-efi-amd64-bin mtools dosfstools \
-            isolinux syslinux-common 2>/dev/null || \
-        apt-get install -y squashfs-tools xorriso grub-pc-bin \
-            grub-efi-amd64-bin mtools dosfstools
+            isolinux syslinux-common 2>/dev/null || true
+        # Re-check after install
+        local still_missing=()
+        for cmd in "${missing[@]}"; do
+            command -v "$cmd" &>/dev/null || still_missing+=("$cmd")
+        done
+        if [ ${#still_missing[@]} -gt 0 ]; then
+            log "AVVISO: dipendenze non disponibili: ${still_missing[*]}"
+        fi
     fi
 }
 
@@ -69,15 +75,23 @@ prepare_iso_dir() {
     cp "$ROOTFS_SQUASH" "$ISO_DIR/live/filesystem.squashfs"
     
     # Copy kernel and initrd from rootfs
-    local vmlinuz
-    vmlinuz=$(ls "$ROOTFS_DIR/boot/vmlinuz-"* 2>/dev/null | head -1)
-    if [ -f "$vmlinuz" ]; then
+    local vmlinuz=""
+    for f in "$ROOTFS_DIR/boot/vmlinuz-"*; do
+        [ -f "$f" ] && { vmlinuz="$f"; break; }
+    done
+    if [ -n "$vmlinuz" ]; then
         cp "$vmlinuz" "$ISO_DIR/boot/vmlinuz"
+    else
+        error "Kernel non trovato in $ROOTFS_DIR/boot/"
     fi
-    local initrd
-    initrd=$(ls "$ROOTFS_DIR/boot/initrd.img-"* 2>/dev/null | head -1)
-    if [ -f "$initrd" ]; then
+    local initrd=""
+    for f in "$ROOTFS_DIR/boot/initrd.img-"*; do
+        [ -f "$f" ] && { initrd="$f"; break; }
+    done
+    if [ -n "$initrd" ]; then
         cp "$initrd" "$ISO_DIR/boot/initrd.img"
+    else
+        error "Initrd non trovato in $ROOTFS_DIR/boot/"
     fi
     
     # Create GRUB rescue config
@@ -145,9 +159,15 @@ LABEL hdd
   LOCALBOOT 0x80
 ISOCFG
     
-    # Copy boot splash
+    # Copy boot splash (convert from SVG if needed)
     if [ -f "$THAIOS_ROOT/branding/boot/splash.png" ]; then
         cp "$THAIOS_ROOT/branding/boot/splash.png" "$ISO_DIR/boot/thaios-splash.png"
+    elif [ -f "$THAIOS_ROOT/branding/boot/splash.svg" ]; then
+        if command -v rsvg-convert &>/dev/null; then
+            rsvg-convert "$THAIOS_ROOT/branding/boot/splash.svg" -o "$ISO_DIR/boot/thaios-splash.png" 2>/dev/null || true
+        elif command -v convert &>/dev/null; then
+            convert "$THAIOS_ROOT/branding/boot/splash.svg" "$ISO_DIR/boot/thaios-splash.png" 2>/dev/null || true
+        fi
     fi
     
     # Copy isolinux binaries
@@ -180,11 +200,16 @@ EMBEDDED
         search search_fs_file ls cat echo test video font gfxterm gfxmenu \
         gfxterm_background png jpeg all_video || true
     if [ -f "$ISO_DIR/boot/grub/BOOTx64.EFI" ]; then
-        dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null
-        mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1
-        mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1
+        dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null && \
+        mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1 && \
+        mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1 && \
         mcopy -i "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/boot/grub/BOOTx64.EFI" ::EFI/BOOT/BOOTx64.EFI >/dev/null 2>&1
-        log "Immagine EFI creata con successo"
+        if [ $? -eq 0 ]; then
+            log "Immagine EFI creata con successo"
+        else
+            log "AVVISO: Creazione immagine EFI fallita, ISO solo BIOS"
+            rm -f "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/boot/grub/BOOTx64.EFI"
+        fi
     else
         log "AVVISO: GRUB EFI non generato, ISO solo BIOS"
     fi
@@ -227,7 +252,7 @@ generate_iso() {
             -isohybrid-gpt-basdat \
             -isohybrid-apm-hfsplus \
             -output "$OUTPUT_ISO" \
-            "$ISO_DIR" 2>&1 | grep -v "ISO:"
+            "$ISO_DIR"
     else
         xorriso -as mkisofs \
             -iso-level 3 \
@@ -239,7 +264,7 @@ generate_iso() {
             -eltorito-catalog isolinux/boot.cat \
             -no-emul-boot -boot-load-size 4 -boot-info-table \
             -output "$OUTPUT_ISO" \
-            "$ISO_DIR" 2>&1 | grep -v "ISO:"
+            "$ISO_DIR"
     fi
 
 
