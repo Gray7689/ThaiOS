@@ -166,8 +166,15 @@ ISOCFG
     
     # Create UEFI boot image
     log "Creazione immagine EFI..."
+    # Embedded config: carica grub.cfg dall'ISO
+    local efi_cfg="$ISO_DIR/boot/grub/embedded.cfg"
+    cat > "$efi_cfg" << 'EMBEDDED'
+search --set=root --file /boot/grub/grub.cfg
+set prefix=($root)/boot/grub
+configfile /boot/grub/grub.cfg
+EMBEDDED
     grub-mkimage -o "$ISO_DIR/boot/grub/BOOTx64.EFI" \
-        -p /boot/grub -O x86_64-efi \
+        -O x86_64-efi -c "$efi_cfg" \
         part_gpt part_msdos iso9660 squash4 loopback ext2 \
         configfile normal boot efi_gop efi_uga \
         search search_fs_file ls cat echo test video font gfxterm gfxmenu \
