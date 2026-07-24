@@ -117,13 +117,11 @@ if [ -e /boot/thaios-splash.png ]; then
 fi
 
 menuentry "Avvia ThaiOS 1.0" --class thaios {
-  set root=(cd)
   linux /boot/vmlinuz boot=live live-media-path=/live quiet splash --
   initrd /boot/initrd.img
 }
 
 menuentry "ThaiOS 1.0 - Modalita provvisoria" {
-  set root=(cd)
   linux /boot/vmlinuz boot=live live-media-path=/live nomodeset --
   initrd /boot/initrd.img
 }
@@ -200,6 +198,8 @@ EMBEDDED
         search search_fs_file ls cat echo test video font gfxterm gfxmenu \
         gfxterm_background png jpeg all_video || true
     if [ -f "$ISO_DIR/boot/grub/BOOTx64.EFI" ]; then
+        mkdir -p "$ISO_DIR/EFI/BOOT"
+        cp "$ISO_DIR/boot/grub/BOOTx64.EFI" "$ISO_DIR/EFI/BOOT/BOOTx64.EFI"
         dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null && \
         mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1 && \
         mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1 && \
