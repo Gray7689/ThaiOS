@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dosfstools \
     isolinux \
     syslinux-common \
+    isolinux \
+    syslinux-common \
     systemd-container \
     ca-certificates \
     librsvg2-bin \

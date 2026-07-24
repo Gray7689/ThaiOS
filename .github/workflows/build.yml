@@ -17,7 +17,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin \
-            grub-efi-amd64-bin grub-efi-amd64-signed shim-signed \
+            grub-efi-amd64-bin \
             mtools dosfstools isolinux syslinux-common \
             ca-certificates librsvg2-bin
 

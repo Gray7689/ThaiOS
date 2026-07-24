@@ -182,53 +182,33 @@ ISOCFG
         [ -f "$src" ] && { cp "$src" "$ISO_DIR/isolinux/"; break; }
     done
     
-    # Create UEFI boot image (with Secure Boot support if available)
+    # Create UEFI boot image
     log "Creazione immagine EFI..."
     mkdir -p "$ISO_DIR/EFI/BOOT"
     
-    # Try signed Shim+GRUB first (for Secure Boot compatibility)
-    local shim_src=""
-    for f in /usr/lib/shim/shimx64.efi.signed /usr/lib/shim/shimx64.efi /usr/lib/shim/shimx64.efi.signed.latest; do
-        [ -f "$f" ] && { shim_src="$f"; break; }
-    done
-    local grub_signed_src=""
-    for f in /usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed /usr/lib/grub/x86_64-efi-signed/grubx64.efi; do
-        [ -f "$f" ] && { grub_signed_src="$f"; break; }
-    done
-    
-    if [ -n "$shim_src" ] && [ -n "$grub_signed_src" ]; then
-        log "Utilizzo Shim+GRUB firmati (Secure Boot compatibile)..."
-        cp "$shim_src" "$ISO_DIR/EFI/BOOT/BOOTx64.EFI"
-        cp "$grub_signed_src" "$ISO_DIR/EFI/BOOT/grubx64.efi"
-        cp "$shim_src" "$ISO_DIR/boot/grub/BOOTx64.EFI"
-    else
-        log "Shim/GRUB firmati non trovati, uso grub-mkimage..."
-        local efi_cfg="$ISO_DIR/boot/grub/embedded.cfg"
-        cat > "$efi_cfg" << 'EMBEDDED'
+    local efi_cfg="$ISO_DIR/boot/grub/embedded.cfg"
+    cat > "$efi_cfg" << 'EMBEDDED'
 search --set=root --file /boot/grub/grub.cfg
 set prefix=($root)/boot/grub
 configfile /boot/grub/grub.cfg
 EMBEDDED
-        grub-mkimage -o "$ISO_DIR/boot/grub/BOOTx64.EFI" \
-            -O x86_64-efi -p /boot/grub -c "$efi_cfg" \
-            part_gpt part_msdos iso9660 squash4 loopback ext2 \
-            configfile normal boot efi_gop efi_uga \
-            search search_fs_file ls cat echo test video font gfxterm gfxmenu \
-            gfxterm_background png jpeg all_video || true
-        if [ -f "$ISO_DIR/boot/grub/BOOTx64.EFI" ]; then
-            cp "$ISO_DIR/boot/grub/BOOTx64.EFI" "$ISO_DIR/EFI/BOOT/BOOTx64.EFI"
-        fi
-    fi
+    grub-mkimage -o "$ISO_DIR/boot/grub/BOOTx64.EFI" \
+        -O x86_64-efi -p /boot/grub -c "$efi_cfg" \
+        part_gpt part_msdos iso9660 squash4 loopback ext2 \
+        configfile normal boot efi_gop efi_uga \
+        search search_fs_file ls cat echo test video font gfxterm gfxmenu \
+        gfxterm_background png jpeg all_video || true
     
-    if [ -f "$ISO_DIR/EFI/BOOT/BOOTx64.EFI" ]; then
+    if [ -f "$ISO_DIR/boot/grub/BOOTx64.EFI" ]; then
+        cp "$ISO_DIR/boot/grub/BOOTx64.EFI" "$ISO_DIR/EFI/BOOT/BOOTx64.EFI"
         dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null && \
         mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1 && \
         mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1 && \
-        mcopy -i "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/EFI/BOOT" ::EFI/BOOT >/dev/null 2>&1
+        mcopy -i "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/EFI/BOOT/BOOTx64.EFI" ::EFI/BOOT/ >/dev/null 2>&1
         if [ $? -eq 0 ]; then
             log "Immagine EFI creata con successo"
         else
-            log "AVVISO: Creazione immagine EFI fallita, ISO solo BIOS"
+            log "AVVISO: Creazione immagine EFI fallita"
             rm -f "$ISO_DIR/boot/grub/efi.img"
         fi
     else
