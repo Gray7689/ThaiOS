@@ -1,0 +1,35 @@
+name: Build ThaiOS ISO
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installa dipendenze
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin \
+            grub-efi-amd64-bin mtools dosfstools isolinux syslinux-common
+
+      - name: Build rootfs
+        run: |
+          sudo bash scripts/build-rootfs.sh
+
+      - name: Build ISO
+        run: |
+          sudo bash scripts/build-iso-final.sh
+
+      - name: Carica ISO come artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThaiOS-1.0
+          path: build/ThaiOS-1.0.iso
+          if-no-files-found: error

@@ -174,7 +174,7 @@ set prefix=($root)/boot/grub
 configfile /boot/grub/grub.cfg
 EMBEDDED
     grub-mkimage -o "$ISO_DIR/boot/grub/BOOTx64.EFI" \
-        -O x86_64-efi -c "$efi_cfg" \
+        -O x86_64-efi -p /boot/grub -c "$efi_cfg" \
         part_gpt part_msdos iso9660 squash4 loopback ext2 \
         configfile normal boot efi_gop efi_uga \
         search search_fs_file ls cat echo test video font gfxterm gfxmenu \
@@ -213,20 +213,34 @@ generate_iso() {
     rm -f "$OUTPUT_ISO"
     
     # Build hybrid ISO with xorriso (BIOS + UEFI)
-    xorriso -as mkisofs \
-        -iso-level 3 \
-        -full-iso9660-filenames \
-        -volid "ThaiOS-1-0" \
-        -appid "ThaiOS Live" \
-        -publisher "ThaiOS" \
-        -eltorito-boot isolinux/isolinux.bin \
-        -eltorito-catalog isolinux/boot.cat \
-        -no-emul-boot -boot-load-size 4 -boot-info-table \
-        -eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot \
-        -isohybrid-gpt-basdat \
-        -isohybrid-apm-hfsplus \
-        -output "$OUTPUT_ISO" \
-        "$ISO_DIR" 2>&1 | grep -v "ISO:"
+    if [ -f "$ISO_DIR/boot/grub/efi.img" ]; then
+        xorriso -as mkisofs \
+            -iso-level 3 \
+            -full-iso9660-filenames \
+            -volid "ThaiOS-1-0" \
+            -appid "ThaiOS Live" \
+            -publisher "ThaiOS" \
+            -eltorito-boot isolinux/isolinux.bin \
+            -eltorito-catalog isolinux/boot.cat \
+            -no-emul-boot -boot-load-size 4 -boot-info-table \
+            -eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot \
+            -isohybrid-gpt-basdat \
+            -isohybrid-apm-hfsplus \
+            -output "$OUTPUT_ISO" \
+            "$ISO_DIR" 2>&1 | grep -v "ISO:"
+    else
+        xorriso -as mkisofs \
+            -iso-level 3 \
+            -full-iso9660-filenames \
+            -volid "ThaiOS-1-0" \
+            -appid "ThaiOS Live" \
+            -publisher "ThaiOS" \
+            -eltorito-boot isolinux/isolinux.bin \
+            -eltorito-catalog isolinux/boot.cat \
+            -no-emul-boot -boot-load-size 4 -boot-info-table \
+            -output "$OUTPUT_ISO" \
+            "$ISO_DIR" 2>&1 | grep -v "ISO:"
+    fi
 
 
 
