@@ -20,7 +20,7 @@ error() { echo -e "\033[1;31m[ERROR]\033[0m $*"; exit 1; }
 
 check_deps() {
     local missing=()
-    for cmd in mksquashfs xorriso grub-mkrescue; do
+    for cmd in mksquashfs xorriso grub-mkstandalone mkfs.fat mmd mcopy; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -30,9 +30,10 @@ check_deps() {
         log "Installazione dipendenze mancanti..."
         apt-get update
         apt-get install -y squashfs-tools xorriso grub-pc-bin \
-            mtools dosfstools isolinux syslinux-common 2>/dev/null || \
+            grub-efi-amd64-bin mtools dosfstools \
+            isolinux syslinux-common 2>/dev/null || \
         apt-get install -y squashfs-tools xorriso grub-pc-bin \
-            mtools dosfstools
+            grub-efi-amd64-bin mtools dosfstools
     fi
 }
 
@@ -163,6 +164,18 @@ ISOCFG
         cp /usr/lib/syslinux/modules/bios/libutil.c32 "$ISO_DIR/isolinux/"
     fi
     
+    # Create UEFI boot image
+    log "Creazione immagine EFI..."
+    grub-mkstandalone --format=x86_64-efi \
+        --output="$ISO_DIR/boot/grub/BOOTx64.EFI" \
+        --modules="part_gpt part_msdos iso9660 squash4 loopback ext2 configfile normal boot" \
+        "/boot/grub/grub.cfg=$ISO_DIR/boot/grub/grub.cfg" 2>/dev/null
+    
+    dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null
+    mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1
+    mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1
+    mcopy -i "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/boot/grub/BOOTx64.EFI" ::EFI/BOOT/BOOTx64.EFI >/dev/null 2>&1
+    
     # Create a README on the ISO
     cat > "$ISO_DIR/README.TXT" << 'README'
 ThaiOS 1.0 (Songkran)
@@ -186,7 +199,7 @@ generate_iso() {
     # Cleanup old ISO
     rm -f "$OUTPUT_ISO"
     
-    # Build hybrid ISO with xorriso + isolinux
+    # Build hybrid ISO with xorriso (BIOS + UEFI)
     xorriso -as mkisofs \
         -iso-level 3 \
         -full-iso9660-filenames \
@@ -195,9 +208,8 @@ generate_iso() {
         -publisher "ThaiOS" \
         -eltorito-boot isolinux/isolinux.bin \
         -eltorito-catalog isolinux/boot.cat \
-        -no-emul-boot \
-        -boot-load-size 4 \
-        -boot-info-table \
+        -no-emul-boot -boot-load-size 4 -boot-info-table \
+        -eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot \
         -isohybrid-gpt-basdat \
         -isohybrid-apm-hfsplus \
         -output "$OUTPUT_ISO" \
