@@ -24,7 +24,8 @@ INCLUDE_PKGS+="xserver-xorg-core,xserver-xorg-input-all,xserver-xorg-video-all,x
 INCLUDE_PKGS+="python3,python3-gi,python3-gi-cairo,"
 INCLUDE_PKGS+="network-manager,alsa-utils,pulseaudio,"
 INCLUDE_PKGS+="zsh,bash-completion,sudo,curl,wget,nano,htop,ca-certificates,"
-INCLUDE_PKGS+="fonts-dejavu,fonts-noto,desktop-file-utils"
+INCLUDE_PKGS+="fonts-dejavu,fonts-noto,desktop-file-utils,"
+INCLUDE_PKGS+="live-boot"
 
 log() { echo -e "\033[1;32m[ThaiOS]\033[0m $*"; }
 error() { echo -e "\033[1;31m[ERROR]\033[0m $*"; exit 1; }
@@ -74,6 +75,9 @@ POLICY
     
     # Installa libgtk-3-0 senza recommends per evitare dconf-service
     apt-get install -y --no-install-recommends --root="$ROOTFS_DIR" libgtk-3-0 2>/dev/null || true
+    
+    # Rigenera initrd con i moduli live-boot
+    chroot "$ROOTFS_DIR" update-initramfs -u 2>/dev/null || true
     
     # ThaiOS identity files
     mkdir -p "$ROOTFS_DIR/etc"

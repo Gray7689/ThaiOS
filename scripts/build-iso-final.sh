@@ -48,11 +48,11 @@ build_squashfs() {
     # Create squashfs with compression
     mksquashfs "$ROOTFS_DIR" "$ROOTFS_SQUASH" \
         -comp zstd \
-        -Xcompression-level 19 \
+        -Xcompression-level 3 \
         -b 1M \
         -no-recovery \
         -noappend \
-        -progress
+        -no-progress
     
     local size=$(du -h "$ROOTFS_SQUASH" | cut -f1)
     log "Squashfs creato: $size"
@@ -68,11 +68,15 @@ prepare_iso_dir() {
     cp "$ROOTFS_SQUASH" "$ISO_DIR/live/filesystem.squashfs"
     
     # Copy kernel and initrd from rootfs
-    if [ -f "$ROOTFS_DIR/boot/vmlinuz-"* ]; then
-        cp "$(ls "$ROOTFS_DIR/boot/vmlinuz-"* | head -1)" "$ISO_DIR/boot/vmlinuz"
+    local vmlinuz
+    vmlinuz=$(ls "$ROOTFS_DIR/boot/vmlinuz-"* 2>/dev/null | head -1)
+    if [ -f "$vmlinuz" ]; then
+        cp "$vmlinuz" "$ISO_DIR/boot/vmlinuz"
     fi
-    if [ -f "$ROOTFS_DIR/boot/initrd.img-"* ]; then
-        cp "$(ls "$ROOTFS_DIR/boot/initrd.img-"* | head -1)" "$ISO_DIR/boot/initrd.img"
+    local initrd
+    initrd=$(ls "$ROOTFS_DIR/boot/initrd.img-"* 2>/dev/null | head -1)
+    if [ -f "$initrd" ]; then
+        cp "$initrd" "$ISO_DIR/boot/initrd.img"
     fi
     
     # Create GRUB rescue config
@@ -99,15 +103,13 @@ fi
 
 menuentry "Avvia ThaiOS 1.0" --class thaios {
   set root=(cd)
-  loopback loop /live/filesystem.squashfs
-  linux /boot/vmlinuz boot=live findiso=/live/filesystem.squashfs components quiet splash --
+  linux /boot/vmlinuz boot=live live-media-path=/live quiet splash --
   initrd /boot/initrd.img
 }
 
 menuentry "ThaiOS 1.0 - Modalita provvisoria" {
   set root=(cd)
-  loopback loop /live/filesystem.squashfs
-  linux /boot/vmlinuz boot=live findiso=/live/filesystem.squashfs nomodeset --
+  linux /boot/vmlinuz boot=live live-media-path=/live nomodeset --
   initrd /boot/initrd.img
 }
 
@@ -130,12 +132,12 @@ MENU COLOR sel 0 #FFFFFFFF #1A274488 none
 LABEL thaios
   MENU LABEL Avvia ThaiOS 1.0
   KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd.img boot=live findiso=/live/filesystem.squashfs quiet splash
+  APPEND initrd=/boot/initrd.img boot=live live-media-path=/live quiet splash
 
 LABEL thaios-safe
   MENU LABEL Modalita provvisoria
   KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd.img boot=live findiso=/live/filesystem.squashfs nomodeset
+  APPEND initrd=/boot/initrd.img boot=live live-media-path=/live nomodeset
 
 LABEL hdd
   MENU LABEL Avvia dal disco locale
