@@ -10,12 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xorriso \
     grub-pc-bin \
     grub-efi-amd64-bin \
-    mtools \
-    dosfstools \
-    isolinux \
-    syslinux-common \
-    isolinux \
-    syslinux-common \
+    grub-common \
     systemd-container \
     ca-certificates \
     librsvg2-bin \

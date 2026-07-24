@@ -20,7 +20,7 @@ error() { echo -e "\033[1;31m[ERROR]\033[0m $*"; exit 1; }
 
 check_deps() {
     local missing=()
-    for cmd in mksquashfs xorriso grub-mkimage mkfs.fat mmd mcopy; do
+    for cmd in mksquashfs grub-mkrescue xorriso; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -30,9 +30,7 @@ check_deps() {
         log "Installazione dipendenze mancanti: ${missing[*]}..."
         apt-get update -qq 2>/dev/null || true
         apt-get install -y squashfs-tools xorriso grub-pc-bin \
-            grub-efi-amd64-bin mtools dosfstools \
-            isolinux syslinux-common 2>/dev/null || true
-        # Re-check after install
+            grub-efi-amd64-bin grub-common 2>/dev/null || true
         local still_missing=()
         for cmd in "${missing[@]}"; do
             command -v "$cmd" &>/dev/null || still_missing+=("$cmd")
@@ -131,32 +129,6 @@ menuentry "Verifica memoria" {
 }
 GRUBCFG
     
-    # ISOLINUX config
-    cat > "$ISO_DIR/isolinux/isolinux.cfg" << 'ISOCFG'
-DEFAULT thaios
-PROMPT 1
-TIMEOUT 100
-UI vesamenu.c32
-MENU TITLE ThaiOS 1.0 - Songkran
-MENU COLOR border 0 #FFFFFFFF #00000000 none
-MENU COLOR title 0 #FF6B35 #00000000 none
-MENU COLOR sel 0 #FFFFFFFF #1A274488 none
-
-LABEL thaios
-  MENU LABEL Avvia ThaiOS 1.0
-  KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd.img boot=live live-media-path=/live quiet splash
-
-LABEL thaios-safe
-  MENU LABEL Modalita provvisoria
-  KERNEL /boot/vmlinuz
-  APPEND initrd=/boot/initrd.img boot=live live-media-path=/live nomodeset
-
-LABEL hdd
-  MENU LABEL Avvia dal disco locale
-  LOCALBOOT 0x80
-ISOCFG
-    
     # Copy boot splash (convert from SVG if needed)
     if [ -f "$THAIOS_ROOT/branding/boot/splash.png" ]; then
         cp "$THAIOS_ROOT/branding/boot/splash.png" "$ISO_DIR/boot/thaios-splash.png"
@@ -166,53 +138,6 @@ ISOCFG
         elif command -v convert &>/dev/null; then
             convert "$THAIOS_ROOT/branding/boot/splash.svg" "$ISO_DIR/boot/thaios-splash.png" 2>/dev/null || true
         fi
-    fi
-    
-    # Copy isolinux binaries (try multiple paths for different distro versions)
-    for src in /usr/lib/ISOLINUX/isolinux.bin /usr/lib/syslinux/isolinux.bin /usr/share/syslinux/isolinux.bin; do
-        [ -f "$src" ] && { cp "$src" "$ISO_DIR/isolinux/"; break; }
-    done
-    for src in /usr/lib/syslinux/modules/bios/vesamenu.c32 /usr/lib/syslinux/vesamenu.c32 /usr/share/syslinux/vesamenu.c32; do
-        [ -f "$src" ] && { cp "$src" "$ISO_DIR/isolinux/"; break; }
-    done
-    for src in /usr/lib/syslinux/modules/bios/libcom32.c32 /usr/lib/syslinux/libcom32.c32 /usr/share/syslinux/libcom32.c32; do
-        [ -f "$src" ] && { cp "$src" "$ISO_DIR/isolinux/"; break; }
-    done
-    for src in /usr/lib/syslinux/modules/bios/libutil.c32 /usr/lib/syslinux/libutil.c32 /usr/share/syslinux/libutil.c32; do
-        [ -f "$src" ] && { cp "$src" "$ISO_DIR/isolinux/"; break; }
-    done
-    
-    # Create UEFI boot image
-    log "Creazione immagine EFI..."
-    mkdir -p "$ISO_DIR/EFI/BOOT"
-    
-    local efi_cfg="$ISO_DIR/boot/grub/embedded.cfg"
-    cat > "$efi_cfg" << 'EMBEDDED'
-search --set=root --file /boot/grub/grub.cfg
-set prefix=($root)/boot/grub
-configfile /boot/grub/grub.cfg
-EMBEDDED
-    grub-mkimage -o "$ISO_DIR/boot/grub/BOOTx64.EFI" \
-        -O x86_64-efi -p /boot/grub -c "$efi_cfg" \
-        part_gpt part_msdos iso9660 squash4 loopback ext2 \
-        configfile normal boot efi_gop efi_uga \
-        search search_fs_file ls cat echo test video font gfxterm gfxmenu \
-        gfxterm_background png jpeg all_video || true
-    
-    if [ -f "$ISO_DIR/boot/grub/BOOTx64.EFI" ]; then
-        cp "$ISO_DIR/boot/grub/BOOTx64.EFI" "$ISO_DIR/EFI/BOOT/BOOTx64.EFI"
-        dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null && \
-        mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1 && \
-        mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1 && \
-        mcopy -i "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/EFI/BOOT/BOOTx64.EFI" ::EFI/BOOT/ >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            log "Immagine EFI creata con successo"
-        else
-            log "AVVISO: Creazione immagine EFI fallita"
-            rm -f "$ISO_DIR/boot/grub/efi.img"
-        fi
-    else
-        log "AVVISO: GRUB EFI non generato, ISO solo BIOS"
     fi
     
     # Create a README on the ISO
@@ -233,43 +158,15 @@ README
 }
 
 generate_iso() {
-    log "Fase 3: Generazione ISO finale..."
+    log "Fase 3: Generazione ISO finale con grub-mkrescue..."
     
-    # Cleanup old ISO
     rm -f "$OUTPUT_ISO"
     
-    # Build hybrid ISO with xorriso (BIOS + UEFI)
-    if [ -f "$ISO_DIR/boot/grub/efi.img" ]; then
-        xorriso -as mkisofs \
-            -iso-level 3 \
-            -full-iso9660-filenames \
-            -volid "ThaiOS-1-0" \
-            -appid "ThaiOS Live" \
-            -publisher "ThaiOS" \
-            -eltorito-boot isolinux/isolinux.bin \
-            -eltorito-catalog isolinux/boot.cat \
-            -no-emul-boot -boot-load-size 4 -boot-info-table \
-            -eltorito-alt-boot -e boot/grub/efi.img -no-emul-boot \
-            -isohybrid-gpt-basdat \
-            -isohybrid-apm-hfsplus \
-            -output "$OUTPUT_ISO" \
-            "$ISO_DIR"
-    else
-        xorriso -as mkisofs \
-            -iso-level 3 \
-            -full-iso9660-filenames \
-            -volid "ThaiOS-1-0" \
-            -appid "ThaiOS Live" \
-            -publisher "ThaiOS" \
-            -eltorito-boot isolinux/isolinux.bin \
-            -eltorito-catalog isolinux/boot.cat \
-            -no-emul-boot -boot-load-size 4 -boot-info-table \
-            -output "$OUTPUT_ISO" \
-            "$ISO_DIR"
-    fi
-
-
-
+    # grub-mkrescue creates a proper hybrid BIOS+UEFI ISO automatically
+    # It handles: GRUB BIOS core.img, GRUB UEFI efi.img, hybrid MBR/GPT, El Torito
+    grub-mkrescue -o "$OUTPUT_ISO" \
+        "$ISO_DIR" \
+        -- -volid "ThaiOS-1-0" -appid "ThaiOS Live" -publisher "ThaiOS"
     
     if [ -f "$OUTPUT_ISO" ]; then
         local size=$(du -h "$OUTPUT_ISO" | cut -f1)
