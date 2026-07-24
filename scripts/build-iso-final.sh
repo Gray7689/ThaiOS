@@ -20,7 +20,7 @@ error() { echo -e "\033[1;31m[ERROR]\033[0m $*"; exit 1; }
 
 check_deps() {
     local missing=()
-    for cmd in mksquashfs xorriso grub-mkstandalone mkfs.fat mmd mcopy; do
+    for cmd in mksquashfs xorriso grub-mkimage mkfs.fat mmd mcopy; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -166,15 +166,21 @@ ISOCFG
     
     # Create UEFI boot image
     log "Creazione immagine EFI..."
-    grub-mkstandalone --format=x86_64-efi \
-        --output="$ISO_DIR/boot/grub/BOOTx64.EFI" \
-        --modules="part_gpt part_msdos iso9660 squash4 loopback ext2 configfile normal boot" \
-        "/boot/grub/grub.cfg=$ISO_DIR/boot/grub/grub.cfg" 2>/dev/null
-    
-    dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null
-    mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1
-    mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1
-    mcopy -i "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/boot/grub/BOOTx64.EFI" ::EFI/BOOT/BOOTx64.EFI >/dev/null 2>&1
+    grub-mkimage -o "$ISO_DIR/boot/grub/BOOTx64.EFI" \
+        -p /boot/grub -O x86_64-efi \
+        part_gpt part_msdos iso9660 squash4 loopback ext2 \
+        configfile normal boot efi_gop efi_uga \
+        search search_fs_file ls cat echo test video font gfxterm gfxmenu \
+        gfxterm_background png jpeg all_video || true
+    if [ -f "$ISO_DIR/boot/grub/BOOTx64.EFI" ]; then
+        dd if=/dev/zero bs=1M count=4 of="$ISO_DIR/boot/grub/efi.img" 2>/dev/null
+        mkfs.fat "$ISO_DIR/boot/grub/efi.img" >/dev/null 2>&1
+        mmd -i "$ISO_DIR/boot/grub/efi.img" EFI EFI/BOOT >/dev/null 2>&1
+        mcopy -i "$ISO_DIR/boot/grub/efi.img" "$ISO_DIR/boot/grub/BOOTx64.EFI" ::EFI/BOOT/BOOTx64.EFI >/dev/null 2>&1
+        log "Immagine EFI creata con successo"
+    else
+        log "AVVISO: GRUB EFI non generato, ISO solo BIOS"
+    fi
     
     # Create a README on the ISO
     cat > "$ISO_DIR/README.TXT" << 'README'
